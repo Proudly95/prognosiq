@@ -3,12 +3,20 @@ name = "prognosiq"
 version = "0.1.0"
 description = "Predictive maintenance: telemetry ingestion, RUL prediction, automated work orders"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi>=0.142.4",
+    "psycopg[binary]>=3.3.6",
+    "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2.1.4",
+    "uvicorn[standard]>=0.54.0",
+]
 
 [dependency-groups]
 dev = [
     "ruff>=0.8.0",
     "pre-commit>=4.0.0",
+    "pytest>=9.1.1",
+    "httpx>=0.28.1",
 ]
 
 [tool.ruff]
@@ -26,3 +34,7 @@ extend-immutable-calls = [
     "fastapi.Header",
     "fastapi.Path",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["apps/api/tests"]
+pythonpath = ["apps/api"]
