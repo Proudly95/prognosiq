@@ -17,3 +17,30 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+
+test:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: prognosiq
+          POSTGRES_PASSWORD: prognosiq
+          POSTGRES_DB: prognosiq
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prognosiq"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg://prognosiq:prognosiq@localhost:5432/prognosiq
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - run: uv run pytest -v
