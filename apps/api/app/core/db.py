@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
 
@@ -16,3 +16,7 @@ def get_db() -> Iterator[Session]:
         yield db
     finally:
         db.close()
+
+
+class Base(DeclarativeBase):
+    pass

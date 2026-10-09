@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Predictive maintenance: telemetry ingestion, RUL prediction, automated work orders"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.20.0",
     "fastapi>=0.142.4",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
