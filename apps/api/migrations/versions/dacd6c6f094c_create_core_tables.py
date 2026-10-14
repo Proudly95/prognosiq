@@ -1,8 +1,8 @@
 """create core tables
 
-Revision ID: f7270e2644a3
+Revision ID: dacd6c6f094c
 Revises:
-Create Date: 2026-10-09 15:57:43.462027
+Create Date: 2026-10-09 16:35:06.702606
 
 """
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "f7270e2644a3"
+revision: str = "dacd6c6f094c"
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -77,6 +77,7 @@ def upgrade() -> None:
                 "conveyor",
                 name="assettype",
                 native_enum=False,
+                create_constraint=True,
                 length=50,
             ),
             nullable=False,
@@ -110,7 +111,15 @@ def upgrade() -> None:
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column(
             "role",
-            sa.Enum("admin", "agent", "viewer", name="memberrole", native_enum=False, length=50),
+            sa.Enum(
+                "admin",
+                "agent",
+                "viewer",
+                name="memberrole",
+                native_enum=False,
+                create_constraint=True,
+                length=50,
+            ),
             nullable=False,
         ),
         sa.Column(
@@ -152,6 +161,7 @@ def upgrade() -> None:
                 "closed",
                 name="workorderstatus",
                 native_enum=False,
+                create_constraint=True,
                 length=50,
             ),
             nullable=False,
@@ -165,6 +175,7 @@ def upgrade() -> None:
                 "urgent",
                 name="workorderpriority",
                 native_enum=False,
+                create_constraint=True,
                 length=50,
             ),
             nullable=False,
@@ -172,7 +183,14 @@ def upgrade() -> None:
         sa.Column("category", sa.String(length=255), nullable=True),
         sa.Column(
             "source",
-            sa.Enum("manual", "sensor_alert", name="workordersource", native_enum=False, length=50),
+            sa.Enum(
+                "manual",
+                "sensor_alert",
+                name="workordersource",
+                native_enum=False,
+                create_constraint=True,
+                length=50,
+            ),
             nullable=False,
         ),
         sa.Column("due_at", sa.DateTime(timezone=True), nullable=True),

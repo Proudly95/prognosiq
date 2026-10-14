@@ -48,4 +48,5 @@ def enum_column(enum_cls):
         native_enum=False,
         values_callable=lambda e: [m.value for m in e],
         length=50,
+        create_constraint=True,
     )
