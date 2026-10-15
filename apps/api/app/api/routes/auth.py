@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import session
+from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.security import hash_password
@@ -11,7 +11,7 @@ router = APIRouter(tags=["auth"])
 
 
 @router.post("/register", response_model=UserRead, status_code=201)
-def register(user_in: UserCreate, db: session = Depends(get_db)) -> User:
+def register(user_in: UserCreate, db: Session = Depends(get_db)) -> User:
     try:
         hashed = hash_password(user_in.password)
         user = User(
