@@ -17,3 +17,7 @@ class UserRead(BaseModel):
     full_name: str
     is_active: bool
     created_at: datetime
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
