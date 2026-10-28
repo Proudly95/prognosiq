@@ -49,12 +49,12 @@ def get_current_user(
 
 @router.post("/login")
 def login(
-    from_data: OAuth2PasswordRequestForm = Depends(),
+    form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.email == from_data.username).first()
-    if user is None or not verify_password(from_data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid email ot password")
+    user = db.query(User).filter(User.email == form_data.username).first()
+    if user is None or not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     return {
         "access_token": create_access_token(user.id),
         "refresh_token": create_refresh_token(user.id),
