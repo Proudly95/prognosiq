@@ -2,11 +2,12 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.api.routes import auth
+from app.api.routes import auth, orgs
 from app.core.db import get_db
 
 app = FastAPI(title="PrognosIQ API", version="0.1.0")
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(orgs.router, prefix="/orgs", tags=["organizations"])
 
 
 @app.get("/health")
