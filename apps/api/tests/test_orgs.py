@@ -82,12 +82,12 @@ def test_new_member_sees_org(client):
     assert org_id in [org["id"] for org in response.json()]
 
 
-def test_agent_connot_add_member(client):
+def test_agent_cannot_add_member(client):
     admin_tokens, member_tokens, org_id = org_with_member(client, member_role="agent")
 
     response = client.post(
         f"/orgs/{org_id}/members",
-        json={"email": "anyone@test.com", "role": "veiwer"},
+        json={"email": "anyone@test.com", "role": "viewer"},
         headers={"Authorization": f"Bearer {member_tokens['access_token']}"},
     )
     assert response.status_code == 403
@@ -96,7 +96,7 @@ def test_agent_connot_add_member(client):
 
 def test_member_sees_org_in_list(client):
     # ARRANGE - one org, one admin, one AGENT (all from the helper):
-    admin_tokensm, member_tokens, org_id = org_with_member(client)
+    admin_tokens, member_tokens, org_id = org_with_member(client)
 
     # ACT - the AGENT asks "which orgs am I in?"
     response = client.get(
@@ -111,21 +111,21 @@ def test_member_sees_org_in_list(client):
 
 
 def test_agent_cannot_add_members(client):
-    # ARANGE - one orgs, one admin, one AGENT:
+    # ARRANGE - one org, one admin, one AGENT:
     admin_tokens, agent_tokens, org_id = org_with_member(client)
 
     # ACT - the AGENT tries to invite someone.
-    # (newcomer@test.com was never registerd - on purpose. The role wall)
+    # (newcomer@test.com was never registered - on purpose. The role wall)
     # Must fire BEFORE the endpoint ever looks the user up; if this test
-    # ever returns 404 instead of 403, the wall has moved.)
+    # ever returns 404 instead of 403, the wall has moved.
 
     response = client.post(
         f"/orgs/{org_id}/members",
-        json={"email": "newcomer@test.com", "role": "AGENT"},
-        headers={"AUthorization": f"Bearer {agent_tokens['access_token']}"},
+        json={"email": "newcomer@test.com", "role": "agent"},
+        headers={"Authorization": f"Bearer {agent_tokens['access_token']}"},
     )
 
-    # ASSET - the role wall holds:
+    # ASSERT - the role wall holds:
     assert response.status_code == 403, response.text
     assert response.json()["detail"] == "Insufficient permissions"
 
@@ -140,3 +140,17 @@ def test_duplicate_member_return_409(client):
     )
 
     assert response.status_code == 409
+
+
+def test_add_member_with_invalid_role_return_422(client):
+    admin_tokens, member_tokens, org_id = org_with_member(client)
+
+    response = client.post(
+        f"/orgs/{org_id}/members",
+        json={"email": "newcomer@test.com", "role": "wizard"},  # "wizard" is not a MemberRole
+        headers={"Authorization": f"Bearer {admin_tokens['access_token']}"},
+    )
+
+    assert response.status_code == 422
+    # the 422 must be about the role, not some other validation miss
+    assert "role" in [err["loc"][-1] for err in response.json()["detail"]]
