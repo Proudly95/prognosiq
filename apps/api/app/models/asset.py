@@ -1,10 +1,14 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
 from app.models.enums import AssetType, enum_column
+
+if TYPE_CHECKING:
+    from app.models.maintenance_record import MaintenanceRecord
 
 
 class Asset(Base):
@@ -23,3 +27,4 @@ class Asset(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    maintenance_records: Mapped[list["MaintenanceRecord"]] = relationship(back_populates="asset")
