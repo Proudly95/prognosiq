@@ -2,7 +2,7 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.api.routes import assets, auth, maintenance_records, orgs
+from app.api.routes import assets, auth, maintenance_records, orgs, work_orders
 from app.core.db import get_db
 
 app = FastAPI(title="PrognosIQ API", version="0.1.0")
@@ -10,6 +10,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(orgs.router, prefix="/orgs", tags=["organizations"])
 app.include_router(assets.router, prefix="/orgs", tags=["assets"])
 app.include_router(maintenance_records.router, prefix="/orgs", tags=["maintenance records"])
+app.include_router(work_orders.router, prefix="/orgs", tags=["work orders"])
 
 
 @app.get("/health")
