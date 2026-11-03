@@ -36,32 +36,14 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
-    env:
-      DATABASE_URL: postgresql+psycopg://prognosiq:prognosiq@localhost:5432/prognosiq
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
       - run: uv sync --frozen
-      - name: DEBUG 5432 (temporary — delete after diagnosis)
+      - name: Create test database
         run: |
-          echo "=== listeners on 5432 ==="
-          sudo ss -ltnp | grep 5432 || echo "(none)"
-          echo "=== containers ==="
-          docker ps --format '{{.Names}} {{.Ports}} {{.Status}}'
           CID=$(docker ps -q --filter name=postgres | head -1)
-          echo "=== container logs (last 15) ==="
-          docker logs "$CID" | tail -15
-          echo "=== auth via TCP *inside* the container ==="
-          docker exec "$CID" psql -h 127.0.0.1 -U prognosiq -d prognosiq -c "select 1 as inside_tcp_ok" || echo "INSIDE-TCP FAILED"
-          echo "=== auth from the runner VM ==="
-          uv run python - <<'EOF'
-          import psycopg
-          try:
-              with psycopg.connect("host=127.0.0.1 port=5432 user=prognosiq password=prognosiq dbname=prognosiq", connect_timeout=5) as c:
-                  print("HOST-SIDE OK:", c.execute("select current_setting('server_version')").fetchone()[0])
-          except Exception as e:
-              print("HOST-SIDE FAILED:", type(e).__name__, e)
-          EOF
+          docker exec "$CID" psql -U prognosiq -d prognosiq -c "CREATE DATABASE prognosiq_test OWNER prognosiq"
       - run: uv run pytest -v
