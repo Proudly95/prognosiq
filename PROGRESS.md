@@ -2,10 +2,8 @@
 
 > Maintained by @Proudly95 + AI pair (Z.ai chat) + Claude Code (VS Code).
 > Rule: every session starts by reading this file. Update it BEFORE ending a session.
-> Last updated: 2026-11-03 — PR #33 squash-merged (assets + maintenance
-> records now in main, 40/40 green); CLAUDE.md session protocol merged
-> (#34); roadmap briefs for #8/#9/#13/#11/#12 + beyond-board items added;
-> next task: #8 work orders CRUD.
+> Last updated: 2026-11-03 — #8 work orders CRUD built (10 new tests,
+> 50/50 green, PR pending merge); next task: #9 CI test job.
 
 ## Product vision (the real endgame)
 
@@ -53,17 +51,26 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   created 2026-11-03) is auto-loaded every session and directs the AI to
   this file first.
 
-## Next task: work orders CRUD (#8)
+## Next task: CI test job (#9)
 
-- Build work orders CRUD on the existing model (class WorkOrder,
-  `app/models/work_order.py` — verified in models/__init__.py).
-- Decide route shape first: org-level `/orgs/{org_id}/work-orders` vs nested
-  under assets. Follow the established pattern (see assets/maintenance_records
-  routes): schemas → router with `get_current_org_member` RBAC → paginated
-  list → tests (outsider/viewer/agent/admin matrix) → Alembic migration only
-  if the schema changes.
-- Optional while in there: review `enums.py` / `work_order.py` for a
-  maintenance_type enum + performed_by FK.
+- Create `.github/workflows/ci.yml`: push + PR triggers, postgres:17 service
+  container, env matching `database_url_test`, uv-based install,
+  `python -m pytest -q` in apps/api, README badge, green checks on PRs.
+- Alembic dependency already present — stale advice corrected (Roadmap #9).
+
+## Last task: work orders CRUD (#8) — BUILT 2026-11-03, 50/50 green (PR pending)
+
+- Org-level routes `/orgs/{org_id}/work-orders` (decided: org-level, not
+  asset-nested); `asset_id` + `status` list filters; RBAC mirrors assets
+  (viewer read / agent create+update / admin delete); org scoping enforced
+  on create too — target asset must be in-org (404), tested.
+- ML-5 hook design kept: POST carries no `status` (always starts OPEN) and
+  accepts `source` (default manual) — a service account later just POSTs
+  with `source=sensor_alert`.
+- NEW `app/schemas/work_order.py` · `app/api/routes/work_orders.py` ·
+  `tests/test_work_orders.py` (10 tests) · main.py router registration.
+- Deferred (fine): maintenance_type enum + performed_by FK review — revisit
+  when telemetry/ML design lands.
 
 ## Last task: maintenance records — CLOSED 2026-11-03 (merged via #33)
 
@@ -170,7 +177,8 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 - Done: #1 skeleton, #2 docker compose, #3 models+Alembic, #4 registration,
   #5 JWT login, #6 orgs+RBAC, #7 assets CRUD + pagination (PR #33),
   #10 ADR-0001
-- Backlog: #8 work orders CRUD, #9 pytest+CI job (partially done),
+- In progress: #8 work orders CRUD — built, 50/50 green, PR pending merge
+- Backlog: #9 pytest+CI job (partially done),
   #11 SimulatorL OPC-UA, #12 collectors + MQTT bridge, #13 dual-protocol ADR
 
 ## Roadmap (ticket briefs — added 2026-11-03, fact-checked)
@@ -179,7 +187,7 @@ Recommended order: #8 → #9 → #13 → #11 → #12 → ML-1…4 (parallelizabl
 anytime) → ML-5 → dashboard → monitoring. (ML-1/ML-2 need only the static
 C-MAPSS files — can start in parallel with anything.)
 
-### #8 — Work orders CRUD + pagination ← NEXT UP
+### #8 — Work orders CRUD + pagination ✅ BUILT 2026-11-03 (suite 50/50)
 - Model + table already exist (class WorkOrder, `app/models/work_order.py`;
   `work_orders` table verified in dev DB). The assets pattern, repeated.
 - `app/schemas/work_order.py` — WorkOrderCreate / Update / Out / Page ·
