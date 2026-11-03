@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   lint:
@@ -18,7 +19,7 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
 
-test:
+  test:
     name: Tests
     runs-on: ubuntu-latest
     services:
