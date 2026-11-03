@@ -2,9 +2,9 @@
 
 > Maintained by @Proudly95 + AI pair (Z.ai chat) + Claude Code (VS Code).
 > Rule: every session starts by reading this file. Update it BEFORE ending a session.
-> Last updated: 2026-11-03 — migration incident resolved (stamp-head fix);
-> maintenance-record stack CONFIRMED present (routes/schemas/tests, 9 tests);
-> test breakdown verified 40 = auth 11 + orgs 10 + assets 8 + maint 9 + health 2.
+> Last updated: 2026-11-03 — PR #33 squash-merged (assets + maintenance
+> records now in main, 40/40 green); CLAUDE.md session protocol created;
+> next task: #8 work orders CRUD.
 
 ## Product vision (the real endgame)
 
@@ -40,33 +40,31 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 
 ## Git state
 
-- Branch `feat/orgs-rbac`. Recent commits: JWT login (#22) → orgs + RBAC →
-  self-healing test DB + compose hardening → invalid-role 422 test fix
-- ⚠️ UNCOMMITTED working tree = assets CRUD + maintenance records, both
-  essentially complete (verified via `git status` 2026-11-03):
-  - NEW `app/api/routes/assets.py` — full CRUD under `/orgs/{org_id}/assets`
-    (list paginated, create 201, get, patch, delete 204)
-  - NEW `app/api/routes/maintenance_records.py` — full CRUD under
-    `/orgs/{org_id}/assets/{asset_id}/maintenance-records` (same verb set)
-  - NEW `app/schemas/asset.py`, `app/schemas/maintenance_record.py`;
-    new `schemas/__init__.py` replaces typo'd `__inti__.py` (deleted)
-  - NEW `app/models/maintenance_record.py` + migration
-    `3c9cdc0412e8_add_maintenance_records.py` (APPLIED + stamped 2026-11-03)
-  - NEW `app/core/pagination.py` — generic PageParams dependency (page/size → offset/limit)
-  - NEW `tests/test_assets.py` — 8 tests · `tests/test_maintenance_records.py` — 9 tests
-  - EDIT main.py (both routers at `/orgs` prefix), config.py (database_url_test),
-    models/asset.py (Text + maintenance_records relationship), models/__init__.py
-  - UPDATED `apps/api/README.md` — was a stale one-liner; now documents
-    routes, setup (Docker Desktop → compose → alembic → uvicorn) and tests
-    (restored + rewritten 2026-11-03; include in the docs commit)
-- → FIRST ACTION: lint first (Rule 8 — `ruff check --fix` + `ruff format`,
-  re-stage touched files), then commit in 3 steps —
-  (A) `chore(api):` pagination.py + config.py + schemas/__init__.py, rm `__inti__.py`;
-  (B) `feat(api):` both routers, schemas, models, migration, both test files;
-  (C) `docs:` PROGRESS.md + updated README.md.
-  Each commit keeps the suite green. Then push → PR → `Closes #7`.
+- 2026-11-03: PR #33 squash-merged into main — ALL of it: assets CRUD,
+  maintenance records, pagination, migration, tests, PROGRESS.md + README.
+  Local `main` synced to 293167a; suite green (40/40) at merge.
+- `feat/orgs-rbac` fully merged — parity with main verified (empty diff).
+  Safe to delete: `git branch -d feat/orgs-rbac` +
+  `git push origin --delete feat/orgs-rbac`.
+- Working tree clean, no pending work. Next work = new branch off updated main.
+- Workflow from now on: branch → lint (Rule 8) → code → pytest → commit →
+  PR → squash-merge (established pattern: #27, #33). CLAUDE.md (repo root,
+  created 2026-11-03) is auto-loaded every session and directs the AI to
+  this file first.
 
-## Next task: maintenance records
+## Next task: work orders CRUD (#8)
+
+- Build work orders CRUD on the existing model (class WorkOrder,
+  `app/models/work_order.py` — verified in models/__init__.py).
+- Decide route shape first: org-level `/orgs/{org_id}/work-orders` vs nested
+  under assets. Follow the established pattern (see assets/maintenance_records
+  routes): schemas → router with `get_current_org_member` RBAC → paginated
+  list → tests (outsider/viewer/agent/admin matrix) → Alembic migration only
+  if the schema changes.
+- Optional while in there: review `enums.py` / `work_order.py` for a
+  maintenance_type enum + performed_by FK.
+
+## Last task: maintenance records — CLOSED 2026-11-03 (merged via #33)
 
 - ✅ Model exists: `models/maintenance_record.py` (MaintenanceRecord), exported
   from `models/__init__.py`; Asset.maintenance_records relationship wired
@@ -141,7 +139,10 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 1. Never code from memory — real names pasted first, then adapt.
 2. Test suite stays green.
 3. Branch → commit → PR ("Closes #N" in body).
-4. Read this file at session start; update it at session end.
+4. Read this file at session start; update it at session end. Since
+   2026-11-03 this is automated: CLAUDE.md (repo root) is auto-loaded every
+   Claude Code session and directs the AI here FIRST, then to GitHub
+   issues/PRs and apps/*/README.md if the project outgrows this file.
 5. Alembic DuplicateTable = schema/version desync. VERIFY FIRST
    (`alembic current` + `\d <table>` in psql), then:
    - existing table MATCHES the migration → `alembic stamp <rev>` FORWARD
@@ -166,8 +167,8 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 ## Board (@Proudly95's PrognosIQ GitHub Project)
 
 - Done: #1 skeleton, #2 docker compose, #3 models+Alembic, #4 registration,
-  #5 JWT login, #6 orgs+RBAC, #10 ADR-0001
-- In progress: #7 Assets CRUD + pagination
+  #5 JWT login, #6 orgs+RBAC, #7 assets CRUD + pagination (PR #33),
+  #10 ADR-0001
 - Backlog: #8 work orders CRUD, #9 pytest+CI job (partially done),
   #11 SimulatorL OPC-UA, #12 collectors + MQTT bridge, #13 dual-protocol ADR
 
