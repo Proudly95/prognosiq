@@ -2,9 +2,9 @@
 
 > Maintained by @Proudly95 + AI pair (Z.ai chat) + Claude Code (VS Code).
 > Rule: every session starts by reading this file. Update it BEFORE ending a session.
-> Last updated: 2026-11-03 — #8 merged (#36) · #9 CI DONE: schema fixed,
-> test db provisioned by workflow, badge live, CI green 50 passed
-> (PRs #38/#39); next task: #13 ADR-0002 dual-protocol.
+> Last updated: 2026-11-03 — #13 ADR-0002 ACCEPTED (PR #41): ingestion via
+> API · TimescaleDB now · JSON "v":1 · numeric Kafka triggers;
+> next task: #11 SimulatorL OPC-UA server.
 
 ## Product vision (the real endgame)
 
@@ -54,14 +54,25 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   created 2026-11-03) is auto-loaded every session and directs the AI to
   this file first.
 
-## Next task: ADR-0002 dual-protocol integration (#13)
+## Next task: SimulatorL OPC-UA server (#11)
 
-- WRITING ticket (instructor-friendly): same format as ADR-0001 (find it —
-  `docs/adr/` or repo search, Rule #1). Decisions to record: ingestion path
-  (MQTT consumer → DB vs API endpoint) · TimescaleDB timing (hypertables) ·
-  payload format (JSON now; protobuf/Avro later?) · what triggers the
-  Phase-5 Kafka switch. Link from README when merged.
-- Write BEFORE building #11/#12 — the decisions shape both services.
+- `services/simulator/` — asyncua server; full brief in Roadmap #11 below.
+- Now carries ADR-0002 obligations: design the `/Fleet` machine tree so the
+  collector's topic scheme (`prognosiq/orgs/{org}/assets/{asset}/...`)
+  maps cleanly; telemetry must carry learnable C-MAPSS-style drift signal.
+
+## Last task: ADR-0002 dual-protocol pipeline — ACCEPTED 2026-11-03 (PR #41)
+
+- The four decisions: ingestion VIA API (single write path; ML-5 will reuse
+  the same service-account pattern) · TimescaleDB enabled NOW (compose + CI
+  images swap to `timescale/timescaledb` pg17; hypertable at table creation
+  in #12) · JSON payload with version field `"v": 1` · numeric Kafka
+  triggers (>1k msgs/sec sustained 10 min, OR 2nd consumer needing replay,
+  OR 3rd service consuming the stream).
+- Wire contract: topic `prognosiq/orgs/{org_id}/assets/{asset_id}/telemetry`
+- Derived work now REQUIRED downstream: API telemetry ingestion endpoint,
+  collector buffer-and-retry on API downtime, image swaps (compose + CI) —
+  folded into Roadmap #11/#12 briefs.
 
 ## Last task: CI test job (#9) — DONE 2026-11-03 (PRs #38, #39)
 
@@ -202,9 +213,8 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 - Done: #1 skeleton, #2 docker compose, #3 models+Alembic, #4 registration,
   #5 JWT login, #6 orgs+RBAC, #7 assets CRUD + pagination (PR #33),
   #8 work orders CRUD (PR #36), #9 CI test job — green + badge (PRs #38/#39),
-  #10 ADR-0001
-- Backlog: #11 SimulatorL OPC-UA, #12 collectors + MQTT bridge,
-  #13 dual-protocol ADR ← NEXT UP
+  #10 ADR-0001, #13 ADR-0002 (PR #41)
+- Backlog: #11 SimulatorL OPC-UA ← NEXT UP, #12 collectors + MQTT bridge
 
 ## Roadmap (ticket briefs — added 2026-11-03, fact-checked)
 
@@ -234,13 +244,13 @@ C-MAPSS files — can start in parallel with anything.)
 - ⚠️ CORRECTION (now moot): alembic was never a missing dependency —
   it is in `pyproject.toml` deps + `uv.lock`.
 
-### #13 — ADR-0002: dual-protocol integration ← NEXT UP (write BEFORE building #11/#12)
+### #13 — ADR-0002: dual-protocol integration ✅ ACCEPTED 2026-11-03 (PR #41)
 - Same format as ADR-0001. Decisions to record: ingestion path (MQTT
   consumer → DB vs API endpoint) · TimescaleDB timing (hypertables for
   telemetry) · payload format (JSON now; protobuf/Avro later?) · what
   triggers the Phase-5 Kafka switch. Link from README when merged.
 
-### #11 — SimulatorL OPC-UA server (`services/simulator/`)
+### #11 — SimulatorL OPC-UA server (`services/simulator/`) ← NEXT UP
 - asyncua server; address space `/Fleet` → machine objects → sensor
   variables; machine types matching the AssetType enum
 - Degradation engine: normal telemetry + C-MAPSS-style sensor drift toward
@@ -251,6 +261,11 @@ C-MAPSS files — can start in parallel with anything.)
   documents the address-space design. Design the tree with #12/#13 in mind.
 
 ### #12 — OPC-UA collectors + MQTT bridge (`services/collector/`) — depends on #11
+- ADR-0002 obligations: build the API telemetry ingestion endpoint (single
+  write path) · collector buffers and retries on API downtime · JSON
+  payload `"v": 1` · topic `prognosiq/orgs/{org}/assets/{asset}/telemetry` ·
+  telemetry table created AS a hypertable · compose + CI postgres images
+  switch to `timescale/timescaledb` (pg17)
 - asyncua client using subscriptions (not polling); Mosquitto in compose
 - Topic scheme + JSON payload contract, e.g.
   `prognosiq/orgs/{org}/assets/{asset}/telemetry`

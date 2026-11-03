@@ -1,13 +1,5 @@
 ADR-0002: Dual-protocol telemetry pipeline
-Date: 2026-11-03 Status: Proposed
-
-Context
-ADR-0001 fixed dual-protocol ingestion (MQTT for sensor-grade devices,
-OPC-UA for PLC-grade machines) and chose TimescaleDB as the engine. Four
-implementation decisions remained: how telemetry reaches the database,
-when to adopt TimescaleDB hypertables, the wire payload format, and what
-ADR-0002: Dual-protocol telemetry pipeline
-Date: 2026-11-03 Status: Proposed
+Date: 2026-11-03 Status: Accepted
 
 Context
 ADR-0001 fixed dual-protocol ingestion (MQTT for sensor-grade devices,
@@ -52,5 +44,3 @@ buffer-and-retry; the TimescaleDB image must be tracked separately from
 vanilla postgres in BOTH compose and CI; JSON is larger and slower to
 parse than binary formats at high volume; the 1k msgs/sec trigger is an
 estimate, not a measured limit.
-
-(Status: Proposed now — the ritual is you flip it to Accepted in the same commit that merges the PR. History, not silent edits.)
