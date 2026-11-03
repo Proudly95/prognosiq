@@ -2,8 +2,9 @@
 
 > Maintained by @Proudly95 + AI pair (Z.ai chat) + Claude Code (VS Code).
 > Rule: every session starts by reading this file. Update it BEFORE ending a session.
-> Last updated: 2026-11-03 — #8 work orders CRUD built (10 new tests,
-> 50/50 green, PR pending merge); next task: #9 CI test job.
+> Last updated: 2026-11-03 — #8 merged (#36) · #9 CI DONE: schema fixed,
+> test db provisioned by workflow, badge live, CI green 50 passed
+> (PRs #38/#39); next task: #13 ADR-0002 dual-protocol.
 
 ## Product vision (the real endgame)
 
@@ -19,16 +20,18 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 - Monorepo, uv-managed. Only `apps/api` has real code;
   `apps/web`, `services/ml`, `services/simulator` = placeholder READMEs.
 - Routers: `app/api/routes/` — auth.py, orgs.py, assets.py,
-  maintenance_records.py (assets + maint registered at `/orgs` prefix)
+  maintenance_records.py, work_orders.py (assets + maint + work orders
+  registered at `/orgs` prefix)
 - Models: `app/models/` — User, Organization, OrganizationMember, Asset,
   WorkOrder, MaintenanceRecord (+ enums)
 - Auth: JWT access 15 min + refresh 7 days, bcrypt registration
 - Roles: **admin / viewer / agent** (NOT "member" — earlier notes were wrong)
-- Tests: **40/40 passing** (verified 2026-11-03). Per-file breakdown verified
-  via `pytest --collect-only`: test_auth 11 · test_orgs 10 · test_assets 8 ·
-  test_maintenance_records 9 · test_health 2. The 22→40 growth is the new
-  asset + maintenance-record suites. conftest self-heals `prognosiq_test`
-  (fails if server down)
+- Tests: **50/50 passing** locally AND green in CI (verified 2026-11-03).
+  Per-file breakdown: test_auth 11 · test_orgs 10 · test_assets 8 ·
+  test_maintenance_records 9 · test_work_orders 10 · test_health 2.
+  conftest self-heals `prognosiq_test` locally (fails if server down);
+  in CI the workflow provisions `prognosiq_test` itself (docker exec psql)
+  and conftest's self-heal path never runs there
 - Infra: docker-compose, Postgres 127.0.0.1:5432, container `prognosiq-db-1`,
   Docker Desktop (Windows) must be running first
 - Dev workflow: `.venv/bin/python` (no bare `python` on PATH) · tests:
@@ -51,14 +54,32 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   created 2026-11-03) is auto-loaded every session and directs the AI to
   this file first.
 
-## Next task: CI test job (#9)
+## Next task: ADR-0002 dual-protocol integration (#13)
 
-- Create `.github/workflows/ci.yml`: push + PR triggers, postgres:17 service
-  container, env matching `database_url_test`, uv-based install,
-  `python -m pytest -q` in apps/api, README badge, green checks on PRs.
-- Alembic dependency already present — stale advice corrected (Roadmap #9).
+- WRITING ticket (instructor-friendly): same format as ADR-0001 (find it —
+  `docs/adr/` or repo search, Rule #1). Decisions to record: ingestion path
+  (MQTT consumer → DB vs API endpoint) · TimescaleDB timing (hypertables) ·
+  payload format (JSON now; protobuf/Avro later?) · what triggers the
+  Phase-5 Kafka switch. Link from README when merged.
+- Write BEFORE building #11/#12 — the decisions shape both services.
 
-## Last task: work orders CRUD (#8) — BUILT 2026-11-03, 50/50 green (PR pending)
+## Last task: CI test job (#9) — DONE 2026-11-03 (PRs #38, #39)
+
+- ci.yml existed since the skeleton but was SCHEMA-BROKEN — `test:` job at
+  column 0 (top-level key) → every run failed in 0s since repo creation.
+  Lesson: valid YAML ≠ valid workflow; 0s failure = file-level problem.
+- Fixed schema (#38) → runs executed but failed on Postgres auth. Debugged
+  with a temporary docker/psql step INSIDE the workflow; the service
+  container's own logs showed: auth to `prognosiq_test` OK (db missing),
+  auth to `prognosiq` (conftest's self-create admin path) rejected.
+- Fix (#39): workflow provisions `prognosiq_test` itself via
+  `docker exec psql` before pytest — conftest's self-heal never runs in CI.
+  Job-level `DATABASE_URL` env removed (misleading, unused by tests).
+- Badge added to root README. CI now green: 50 passed in ~1m9s.
+  (Underlying scram anomaly on the admin-path connection left unidentified —
+  path removed from CI, non-blocking.)
+
+## Last task: work orders CRUD (#8) — merged via #36
 
 - Org-level routes `/orgs/{org_id}/work-orders` (decided: org-level, not
   asset-nested); `asset_id` + `status` list filters; RBAC mirrors assets
@@ -180,10 +201,10 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 
 - Done: #1 skeleton, #2 docker compose, #3 models+Alembic, #4 registration,
   #5 JWT login, #6 orgs+RBAC, #7 assets CRUD + pagination (PR #33),
+  #8 work orders CRUD (PR #36), #9 CI test job — green + badge (PRs #38/#39),
   #10 ADR-0001
-- In progress: #8 work orders CRUD — built, 50/50 green, PR pending merge
-- Backlog: #9 pytest+CI job (partially done),
-  #11 SimulatorL OPC-UA, #12 collectors + MQTT bridge, #13 dual-protocol ADR
+- Backlog: #11 SimulatorL OPC-UA, #12 collectors + MQTT bridge,
+  #13 dual-protocol ADR ← NEXT UP
 
 ## Roadmap (ticket briefs — added 2026-11-03, fact-checked)
 
@@ -191,7 +212,7 @@ Recommended order: #8 → #9 → #13 → #11 → #12 → ML-1…4 (parallelizabl
 anytime) → ML-5 → dashboard → monitoring. (ML-1/ML-2 need only the static
 C-MAPSS files — can start in parallel with anything.)
 
-### #8 — Work orders CRUD + pagination ✅ BUILT 2026-11-03 (suite 50/50)
+### #8 — Work orders CRUD + pagination ✅ MERGED via #36 (suite 50/50)
 - Model + table already exist (class WorkOrder, `app/models/work_order.py`;
   `work_orders` table verified in dev DB). The assets pattern, repeated.
 - `app/schemas/work_order.py` — WorkOrderCreate / Update / Out / Page ·
@@ -206,16 +227,14 @@ C-MAPSS files — can start in parallel with anything.)
   (ML-5 hook entry point). FIRST STEP: read `work_order.py` — its fields
   and status enums are not yet on record here (Rule #1).
 
-### #9 — pytest setup + CI test job (pytest half DONE)
-- DONE: self-healing conftest, 40/40 green.
-- REMAINS: `.github/workflows/ci.yml` — push + PR triggers, postgres:17
-  service container, env matching `database_url_test`, uv-based install,
-  `python -m pytest -q` in apps/api, README badge, green checks on PRs.
-- ⚠️ CORRECTION 2026-11-03: alembic is NOT a missing dependency — it is in
-  `pyproject.toml` deps + `uv.lock`. Earlier "add alembic to requirements"
-  advice was stale; ignore it.
+### #9 — pytest setup + CI test job ✅ DONE 2026-11-03 (PRs #38/#39)
+- ci.yml existed since the skeleton but was schema-broken (never ran);
+  fixed, postgres:17 service container, test db provisioned by the workflow
+  itself, badge live in root README. CI green: 50 passed (~1m9s).
+- ⚠️ CORRECTION (now moot): alembic was never a missing dependency —
+  it is in `pyproject.toml` deps + `uv.lock`.
 
-### #13 — ADR-0002: dual-protocol integration (write BEFORE building #11/#12)
+### #13 — ADR-0002: dual-protocol integration ← NEXT UP (write BEFORE building #11/#12)
 - Same format as ADR-0001. Decisions to record: ingestion path (MQTT
   consumer → DB vs API endpoint) · TimescaleDB timing (hypertables for
   telemetry) · payload format (JSON now; protobuf/Avro later?) · what
@@ -256,3 +275,7 @@ C-MAPSS files — can start in parallel with anything.)
 - (resolved 2026-11-03) The empty-migration-stub trap is fixed and applied —
   see Rules #5–6 for the desync procedure that replaces it
 - Bare `python` not on PATH — always `.venv/bin/python` or `uv run`
+- CI run failing in 0s = invalid workflow FILE (schema error, e.g. a job
+  key at wrong indent), NOT a test failure. Debug deeper failures with a
+  temporary docker/psql step inside the workflow and read the SERVICE
+  container's own logs. (Learned fixing #9, 2026-11-03.)
