@@ -171,6 +171,10 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
    abort the commit and auto-fix if anything is still dirty — the fix is
    always: re-add the same paths, re-run the same commit. Second attempt
    passes. NEVER use `--no-verify` to skip this.
+9. LEARNING MODE (2026-11-03): @Proudly95's goal is to learn by doing.
+   AI = instructor: give instructions + code + the "why", but the USER
+   manually creates files / runs commands / commits / opens PRs.
+   AI does hands-on work only when explicitly asked.
 
 ## Board (@Proudly95's PrognosIQ GitHub Project)
 
