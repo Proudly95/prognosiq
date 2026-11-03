@@ -36,12 +36,14 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
-    env:
-      DATABASE_URL: postgresql+psycopg://prognosiq:prognosiq@localhost:5432/prognosiq
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
       - run: uv sync --frozen
+      - name: Create test database
+        run: |
+          CID=$(docker ps -q --filter name=postgres | head -1)
+          docker exec "$CID" psql -U prognosiq -d prognosiq -c "CREATE DATABASE prognosiq_test OWNER prognosiq"
       - run: uv run pytest -v

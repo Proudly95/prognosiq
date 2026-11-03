@@ -1,3 +1,5 @@
+[![CI](https://github.com/Proudly95/prognosiq/actions/workflows/ci.yml/badge.svg)](https://github.com/Proudly95/prognosiq/actions/workflows/ci.yml)
+
 PrognosIQ
 Predictive maintenance platform: simulated industrial machines stream sensortelemetry over MQTT and OPC-UA, ML models trained on NASA's C-MAPSS datasetpredict Remaining Useful Life (RUL), and failing assets automaticallygenerate maintenance work orders on a live dashboard.
 
