@@ -3,7 +3,8 @@
 > Maintained by @Proudly95 + AI pair (Z.ai chat) + Claude Code (VS Code).
 > Rule: every session starts by reading this file. Update it BEFORE ending a session.
 > Last updated: 2026-11-03 — PR #33 squash-merged (assets + maintenance
-> records now in main, 40/40 green); CLAUDE.md session protocol created;
+> records now in main, 40/40 green); CLAUDE.md session protocol merged
+> (#34); roadmap briefs for #8/#9/#13/#11/#12 + beyond-board items added;
 > next task: #8 work orders CRUD.
 
 ## Product vision (the real endgame)
@@ -171,6 +172,70 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   #10 ADR-0001
 - Backlog: #8 work orders CRUD, #9 pytest+CI job (partially done),
   #11 SimulatorL OPC-UA, #12 collectors + MQTT bridge, #13 dual-protocol ADR
+
+## Roadmap (ticket briefs — added 2026-11-03, fact-checked)
+
+Recommended order: #8 → #9 → #13 → #11 → #12 → ML-1…4 (parallelizable
+anytime) → ML-5 → dashboard → monitoring. (ML-1/ML-2 need only the static
+C-MAPSS files — can start in parallel with anything.)
+
+### #8 — Work orders CRUD + pagination ← NEXT UP
+- Model + table already exist (class WorkOrder, `app/models/work_order.py`;
+  `work_orders` table verified in dev DB). The assets pattern, repeated.
+- `app/schemas/work_order.py` — WorkOrderCreate / Update / Out / Page ·
+  `app/api/routes/work_orders.py` — list / create 201 / get / patch /
+  delete 204 under `/orgs/{org_id}/work-orders`
+- List filters: `asset_id`, `status` query params
+- RBAC via `get_current_org_member`, mirroring assets' role rules
+- Org-scoping test mandatory (org B can never see org A's work orders)
+- ~10 tests, same mold as `tests/test_assets.py` (RBAC ×3 roles,
+  422 invalid enum, pagination, scoping) · suite green ~50 → PR "Closes #8"
+- Design POST so a service account can create work orders later
+  (ML-5 hook entry point). FIRST STEP: read `work_order.py` — its fields
+  and status enums are not yet on record here (Rule #1).
+
+### #9 — pytest setup + CI test job (pytest half DONE)
+- DONE: self-healing conftest, 40/40 green.
+- REMAINS: `.github/workflows/ci.yml` — push + PR triggers, postgres:17
+  service container, env matching `database_url_test`, uv-based install,
+  `python -m pytest -q` in apps/api, README badge, green checks on PRs.
+- ⚠️ CORRECTION 2026-11-03: alembic is NOT a missing dependency — it is in
+  `pyproject.toml` deps + `uv.lock`. Earlier "add alembic to requirements"
+  advice was stale; ignore it.
+
+### #13 — ADR-0002: dual-protocol integration (write BEFORE building #11/#12)
+- Same format as ADR-0001. Decisions to record: ingestion path (MQTT
+  consumer → DB vs API endpoint) · TimescaleDB timing (hypertables for
+  telemetry) · payload format (JSON now; protobuf/Avro later?) · what
+  triggers the Phase-5 Kafka switch. Link from README when merged.
+
+### #11 — SimulatorL OPC-UA server (`services/simulator/`)
+- asyncua server; address space `/Fleet` → machine objects → sensor
+  variables; machine types matching the AssetType enum
+- Degradation engine: normal telemetry + C-MAPSS-style sensor drift toward
+  failure (learnable signal for the ML models)
+- Config-driven: machine count, failure modes, sample interval
+- Dockerfile + compose entry; endpoint `opc.tcp://…:4840`
+- Tests: server boots, tree browsable, values change over time; README
+  documents the address-space design. Design the tree with #12/#13 in mind.
+
+### #12 — OPC-UA collectors + MQTT bridge (`services/collector/`) — depends on #11
+- asyncua client using subscriptions (not polling); Mosquitto in compose
+- Topic scheme + JSON payload contract, e.g.
+  `prognosiq/orgs/{org}/assets/{asset}/telemetry`
+- Reconnect resilience (survives simulator/broker restarts); tests against
+  local OPC-UA + local MQTT; demo: `mosquitto_sub` shows live values for
+  every simulated asset. Contract feeds #13's decisions.
+
+### Beyond the board (file tickets when reached)
+- Telemetry ingestion + TimescaleDB hypertables (falls out of #13)
+- ML track (details in "AI/ML scope"): ML-1 pipeline+EDA · ML-2 sklearn
+  baseline+MLflow · ML-3 LSTM/1D-CNN+DVC · ML-4 prediction endpoint ·
+  ML-5 auto-workorder hook (needs #8 + ML-4)
+- Next.js dashboard (`apps/web`): live RUL + work-order queue
+- Monitoring: Prometheus/Grafana + Evidently drift
+- ⚠️ Rotate `secret_key` (env-driven, not the change-me placeholder) —
+  pre-production blocker (see Security / gotchas)
 
 ## Security / gotchas
 
