@@ -2,10 +2,10 @@
 
 > Maintained by @Proudly95 + AI pair (Z.ai chat) + Claude Code (VS Code).
 > Rule: every session starts by reading this file. Update it BEFORE ending a session.
-> Last updated: 2026-11-06 — #11 SimulatorL OPC-UA DONE — all 4 pieces
-> (config-driven fleet, per-type degradation, OPC-UA integration tests,
-> Dockerfile + compose on host port 4841, README) on feat/simulator-
-> hello-fleet → PR #43. Suite 19 sim + 50 api green; next: #12.
+> Last updated: 2026-11-06 — #11 SimulatorL OPC-UA DONE & MERGED (PR #43 →
+> b65e891; issue #11 closed automatically; PR #44 folded the number into
+> this file; all stale branches swept). Verified on main 2026-11-06:
+> 19 sim + 50 api tests green. Next: #12 collectors + MQTT bridge.
 
 ## Product vision (the real endgame)
 
@@ -18,8 +18,9 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 
 ## Verified repo state (2026-11-06)
 
-- Monorepo, uv-managed. Only `apps/api` has real code;
-  `apps/web`, `services/ml`, `services/simulator` = placeholder READMEs.
+- Monorepo, uv-managed. Real code: `apps/api` (FastAPI) +
+  `services/simulator` (OPC-UA fleet simulator, merged via PR #43).
+  Placeholder READMEs: `apps/web`, `services/ml`.
 - Routers: `app/api/routes/` — auth.py, orgs.py, assets.py,
   maintenance_records.py, work_orders.py (assets + maint + work orders
   registered at `/orgs` prefix)
@@ -27,7 +28,8 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   WorkOrder, MaintenanceRecord (+ enums)
 - Auth: JWT access 15 min + refresh 7 days, bcrypt registration
 - Roles: **admin / viewer / agent** (NOT "member" — earlier notes were wrong)
-- Tests: **50/50 passing** locally AND green in CI (verified 2026-11-03).
+- Tests: **50/50 passing** locally AND green in CI (re-verified 2026-11-06
+  on merged main).
   Per-file breakdown: test_auth 11 · test_orgs 10 · test_assets 8 ·
   test_maintenance_records 9 · test_work_orders 10 · test_health 2.
   conftest self-heals `prognosiq_test` locally (fails if server down);
@@ -48,43 +50,39 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   test_{degradation,config,fleet,server}.py · demo `config.toml` (6 machines
   / 2 orgs) · `probe.py` dumps live fleet · boot: `uv run python -m
   simulator.main` · CLI tree dump:
-  `uv run uals -l 4 opc.tcp://localhost:4840/prognosiq/simulator/`
+  `uv run uals -l 4 opc.tcp://localhost:4841/prognosiq/simulator/`
+  (4841 = containerized fleet's published port; a host-run server uses 4840)
 
 ## Git state
 
-- 2026-11-06 (later): #11 COMPLETED — 938c01f Dockerfile + compose (host
-  port 4841: Docker Desktop forwards on the Windows side, where opcualds.exe
-  OPC-UA Local Discovery Server owns 4840; probe.py targets 4841) ·
-  99c799c README (address space, profiles, run, gotchas). Pre-push gates:
-  ruff clean · sim 19/19 · api 50/50. PR #43 (Closes #11).
-- 2026-11-06: #11 pieces 1+2 on branch `feat/simulator-hello-fleet` (off
-  latest main): 6467f2b hello-fleet server + degradation engine · e88dd4b
-  config-driven fleet (config.toml, per-type wear profiles, UA identity
-  properties OrgId/AssetId/AssetType/Health) · ae873d2 OPC-UA integration
-  tests (test_server.py: boots / browsable / values-change via run(cfg)
-  background task + real asyncua Client). Suite 19/19, live probe verified
-  earlier (values match profile math). NO PR yet — PR opens when #11
-  completes (pieces 3–4 left). Probe fix included in e88dd4b:
-  QualifiedName attr is `.Name`. config.py hardening IN:
-  MachineConfig.__post_init__ validates asset_type (closes the DI
-  side-door — no raw KeyError possible for bad types).
-- 2026-11-03: PR #33 squash-merged into main — ALL of it: assets CRUD,
-  maintenance records, pagination, migration, tests, PROGRESS.md + README.
-  Local `main` synced to 293167a; suite green (40/40) at merge.
-- `feat/orgs-rbac` fully merged — parity with main verified (empty diff).
-  Safe to delete: `git branch -d feat/orgs-rbac` +
-  `git push origin --delete feat/orgs-rbac`.
+- 2026-11-06 (post-merge wrap): #11 DONE & MERGED — PR #43 squash →
+  b65e891 on main; issue #11 CLOSED automatically. PR #44 (a60fe8d) folded
+  the PR number into this file. Branch sweep: ALL stale local branches
+  deleted (docs/adr-0002, docs/adr-0002-cleanup, docs/close-ticket-9,
+  feat/api-skeleton, fix/session-import, feat/simulator-hello-fleet,
+  docs/post-11-progress-number) — each verified with
+  `git cherry main <branch>` (every line `-` = content already in main
+  via squash) before deletion; only `main` remains. Post-merge gates on
+  main: sim 19/19 · api 50/50 (re-run 2026-11-06).
+- Squash-workflow lesson: `git branch -d` refuses squash-merged branches
+  (ancestry is broken). Verify content with `git cherry main <branch>` —
+  every line `-` = safe to `-D`. Immediately after a PR merge, `-d` may
+  pass anyway via the upstream-ref check.
 - Working tree clean, no pending work. Next work = new branch off updated main.
 - Workflow from now on: branch → lint (Rule 8) → code → pytest → commit →
-  PR → squash-merge (established pattern: #27, #33). CLAUDE.md (repo root,
-  created 2026-11-03) is auto-loaded every session and directs the AI to
-  this file first.
+  PR ("Closes #N") → squash-merge (established pattern: #27, #33, #43).
+  CLAUDE.md (repo root, created 2026-11-03) is auto-loaded every session
+  and directs the AI to this file first.
 
 ## Next task: #12 — OPC-UA collectors + MQTT bridge (`services/collector/`)
 
 - Depends on #11 ✅ DONE (simulator serves the fleet, containerized;
   `services/simulator/README.md` documents the address space and the
   identity-property contract).
+- FIRST STEP (Rule 1): read `services/simulator/README.md` and
+  `services/simulator/simulator/main.py` (the property contract the
+  collector consumes) BEFORE writing any collector code; then decide the
+  `services/collector/` module layout.
 - ADR-0002 obligations: build the API telemetry ingestion endpoint (single
   write path) · collector buffers + retries on API downtime · JSON payload
   `"v": 1` · topic `prognosiq/orgs/{org}/assets/{asset}/telemetry` ·
