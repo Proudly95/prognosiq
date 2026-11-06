@@ -5,7 +5,7 @@
 > Last updated: 2026-11-06 — #11 SimulatorL OPC-UA DONE — all 4 pieces
 > (config-driven fleet, per-type degradation, OPC-UA integration tests,
 > Dockerfile + compose on host port 4841, README) on feat/simulator-
-> hello-fleet → PR "Closes #11". Suite 19 sim + 50 api green; next: #12.
+> hello-fleet → PR #43. Suite 19 sim + 50 api green; next: #12.
 
 ## Product vision (the real endgame)
 
@@ -56,7 +56,7 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   port 4841: Docker Desktop forwards on the Windows side, where opcualds.exe
   OPC-UA Local Discovery Server owns 4840; probe.py targets 4841) ·
   99c799c README (address space, profiles, run, gotchas). Pre-push gates:
-  ruff clean · sim 19/19 · api 50/50. PR "Closes #11".
+  ruff clean · sim 19/19 · api 50/50. PR #43 (Closes #11).
 - 2026-11-06: #11 pieces 1+2 on branch `feat/simulator-hello-fleet` (off
   latest main): 6467f2b hello-fleet server + degradation engine · e88dd4b
   config-driven fleet (config.toml, per-type wear profiles, UA identity
@@ -262,8 +262,7 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 - Done: #1 skeleton, #2 docker compose, #3 models+Alembic, #4 registration,
   #5 JWT login, #6 orgs+RBAC, #7 assets CRUD + pagination (PR #33),
   #8 work orders CRUD (PR #36), #9 CI test job — green + badge (PRs #38/#39),
-  #10 ADR-0001, #13 ADR-0002 (PR #41), #11 SimulatorL OPC-UA (this PR —
-  Closes #11)
+  #10 ADR-0001, #13 ADR-0002 (PR #41),  #11 SimulatorL OPC-UA (PR #43)
 - Backlog: #12 collectors + MQTT bridge ← NEXT UP
 
 ## Roadmap (ticket briefs — added 2026-11-03, fact-checked)
