@@ -2,9 +2,10 @@
 
 > Maintained by @Proudly95 + AI pair (Z.ai chat) + Claude Code (VS Code).
 > Rule: every session starts by reading this file. Update it BEFORE ending a session.
-> Last updated: 2026-11-03 — #13 ADR-0002 ACCEPTED (PR #41): ingestion via
-> API · TimescaleDB now · JSON "v":1 · numeric Kafka triggers;
-> next task: #11 SimulatorL OPC-UA server.
+> Last updated: 2026-11-06 — #11 SimulatorL pieces 1+2 DONE (commits 6467f2b
+> + e88dd4b + ae873d2 on feat/simulator-hello-fleet, NOT yet PR'd): config-
+> driven fleet + OPC-UA integration tests, 19 tests green;
+> next: #11 piece 3 — Dockerfile + compose entry.
 
 ## Product vision (the real endgame)
 
@@ -15,7 +16,7 @@ Target stack: FastAPI + PostgreSQL/TimescaleDB · Next.js/TS frontend ·
 scikit-learn → PyTorch LSTM/1D-CNN (MLflow + DVC) · Mosquitto MQTT + asyncua
 OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evidently.
 
-## Verified repo state (2026-11-03)
+## Verified repo state (2026-11-06)
 
 - Monorepo, uv-managed. Only `apps/api` has real code;
   `apps/web`, `services/ml`, `services/simulator` = placeholder READMEs.
@@ -39,9 +40,29 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   server: `uv run uvicorn app.main:app --reload` ·
   lint (every commit, Rule 8): `.venv/bin/ruff check --fix apps/api &&
   .venv/bin/ruff format apps/api` from repo root
+- `services/simulator/` — REAL uv sub-project now (own pyproject.toml +
+  uv.lock + .venv, Python 3.12, asyncua; NOT the root venv). Tests:
+  `cd services/simulator && uv run pytest -q` → 19/19 green (2026-11-06),
+  no DB/Docker needed (integration tests serve on 127.0.0.1:48410, NOT 4840).
+  Modules: `simulator/{config,fleet,degradation,main}.py` · tests:
+  test_{degradation,config,fleet,server}.py · demo `config.toml` (6 machines
+  / 2 orgs) · `probe.py` dumps live fleet · boot: `uv run python -m
+  simulator.main` · CLI tree dump:
+  `uv run uals -l 4 opc.tcp://localhost:4840/prognosiq/simulator/`
 
 ## Git state
 
+- 2026-11-06: #11 pieces 1+2 on branch `feat/simulator-hello-fleet` (off
+  latest main): 6467f2b hello-fleet server + degradation engine · e88dd4b
+  config-driven fleet (config.toml, per-type wear profiles, UA identity
+  properties OrgId/AssetId/AssetType/Health) · ae873d2 OPC-UA integration
+  tests (test_server.py: boots / browsable / values-change via run(cfg)
+  background task + real asyncua Client). Suite 19/19, live probe verified
+  earlier (values match profile math). NO PR yet — PR opens when #11
+  completes (pieces 3–4 left). Probe fix included in e88dd4b:
+  QualifiedName attr is `.Name`. config.py hardening IN:
+  MachineConfig.__post_init__ validates asset_type (closes the DI
+  side-door — no raw KeyError possible for bad types).
 - 2026-11-03: PR #33 squash-merged into main — ALL of it: assets CRUD,
   maintenance records, pagination, migration, tests, PROGRESS.md + README.
   Local `main` synced to 293167a; suite green (40/40) at merge.
@@ -54,12 +75,19 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   created 2026-11-03) is auto-loaded every session and directs the AI to
   this file first.
 
-## Next task: SimulatorL OPC-UA server (#11)
+## Next task: #11 piece 3 — Dockerfile + compose entry
 
-- `services/simulator/` — asyncua server; full brief in Roadmap #11 below.
-- Now carries ADR-0002 obligations: design the `/Fleet` machine tree so the
-  collector's topic scheme (`prognosiq/orgs/{org}/assets/{asset}/...`)
-  maps cleanly; telemetry must carry learnable C-MAPSS-style drift signal.
+- Pieces 1+2 DONE (2026-11-06): config-driven fleet + OPC-UA integration
+  tests. test_server.py boots run(cfg) in-process on 127.0.0.1:48410 with
+  interval 0.01 and talks to it with a real asyncua Client. Fixture
+  pattern: create_task(run(cfg)) → poll-connect → yield → cancel + await.
+- Piece 3: Dockerfile (uv-based, python 3.12-slim, copy pyproject.toml +
+  uv.lock, run `python -m simulator.main`) + docker-compose `simulator`
+  service (expose 4840, mount config.toml). Brief in Roadmap #11 below.
+- Piece 4: README (address-space design + topic-mapping contract +
+  "no security — dev only" note) → then PR "Closes #11".
+- ADR-0002 obligation kept by design: collector reads the UA properties to
+  build `prognosiq/orgs/{org}/assets/{asset}/telemetry`.
 
 ## Last task: ADR-0002 dual-protocol pipeline — ACCEPTED 2026-11-03 (PR #41)
 
@@ -173,6 +201,21 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 - Enums: `app/models/enums.py` (AssetType + `enum_column()` helper)
 - asset.py Text import + relationship now USED — Asset.maintenance_records
   back_populates MaintenanceRecord.asset (wired 2026-11-03)
+- Simulator (verified 2026-11-06): `simulator/degradation.py` → SENSORS ·
+  MachineProfile (frozen dataclass) · TYPE_PROFILES (5 keys mirroring
+  AssetType: pump/motor/turbofan/compressor/conveyor) · ALLOWED_ASSET_TYPES ·
+  MachineState · next_state · read_sensors · `simulator/config.py` →
+  MachineConfig / SimulatorConfig / load_config(path=None) ·
+  `simulator/fleet.py` → build_fleet(cfg, rng=None) · `simulator/main.py` →
+  NAMESPACE_URI · run(cfg) · main() (argv[1] = config path, default
+  config.toml). asyncua facts: node.add_property(idx, name, val) verified
+  (node.py:913); QualifiedName attr is `.Name` NOT `.name` (uatypes.py:711);
+  get_child paths are relative to the node called on (no leading "0:Objects"
+  from nodes.objects)
+- test_server.py (2026-11-06): ENDPOINT 127.0.0.1:48410 (deliberately ≠
+  4840 — tests never fight a demo server or zombie) · make_cfg() builds
+  SimulatorConfig in code (the DI path) · fixture teardown (cancel + await)
+  runs even when the test body fails
 
 ## Rules
 
@@ -214,7 +257,8 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   #5 JWT login, #6 orgs+RBAC, #7 assets CRUD + pagination (PR #33),
   #8 work orders CRUD (PR #36), #9 CI test job — green + badge (PRs #38/#39),
   #10 ADR-0001, #13 ADR-0002 (PR #41)
-- Backlog: #11 SimulatorL OPC-UA ← NEXT UP, #12 collectors + MQTT bridge
+- In progress: #11 SimulatorL OPC-UA (pieces 1+2 done 2026-11-06; pieces 3–4 left)
+- Backlog: #12 collectors + MQTT bridge
 
 ## Roadmap (ticket briefs — added 2026-11-03, fact-checked)
 
@@ -250,7 +294,7 @@ C-MAPSS files — can start in parallel with anything.)
   telemetry) · payload format (JSON now; protobuf/Avro later?) · what
   triggers the Phase-5 Kafka switch. Link from README when merged.
 
-### #11 — SimulatorL OPC-UA server (`services/simulator/`) ← NEXT UP
+### #11 — SimulatorL OPC-UA server (`services/simulator/`) — pieces 1+2 DONE 2026-11-06
 - asyncua server; address space `/Fleet` → machine objects → sensor
   variables; machine types matching the AssetType enum
 - Degradation engine: normal telemetry + C-MAPSS-style sensor drift toward
@@ -294,3 +338,21 @@ C-MAPSS files — can start in parallel with anything.)
   key at wrong indent), NOT a test failure. Debug deeper failures with a
   temporary docker/psql step inside the workflow and read the SERVICE
   container's own logs. (Learned fixing #9, 2026-11-03.)
+- Simulator gotchas (2026-11-06): Errno 98 "address already in use" =
+  old server still holds 4840 → `ss -tlnp | grep 4840` / `pkill -f
+  simulator.main` · pre-commit stash-conflict: unstaged files + a hook
+  auto-fix → it rolls back EVERYTHING; stage all then re-commit (Rule 8
+  dance) · ruff reports ONLY syntax errors for a broken file — semantic
+  checks (F401 etc.) surface after syntax is fixed · indentation is control
+  flow: config.py validation nested one level deep ran per-key and made a
+  VALID config raise "duplicate machine name" on machine #0; one test
+  stayed green for the WRONG reason — green ≠ correct, check why ·
+  typo'd dict keys ("Interval_s", m["names"]) are invisible to ruff — only
+  tests catch them
+- Async test lessons (2026-11-06): with background tasks the SETUP error
+  (e.g. "server never came up") is almost never the cause — read the
+  captured log for the task's own exception (KeyError: 'Turbofan' hid
+  there) · `await` inside a bare `(… for …)` genexp makes an async
+  generator that sorted()/list() reject (PEP 530) — use a list comp ·
+  constructing SimulatorConfig in code skips load_config validation —
+  closed via MachineConfig.__post_init__ asset_type check
