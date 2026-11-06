@@ -66,3 +66,9 @@ def load_config(path: Path | None = None) -> SimulatorConfig:
         raise ValueError("at least one [[machine]] entry is required")
 
     return SimulatorConfig(endpoint=endpoint, interval_s=interval_s, machines=machines)
+
+
+def __post_init__(self) -> None:
+    if self.asset_type not in ALLOWED_ASSET_TYPES:
+        known = ", ".join(sorted(ALLOWED_ASSET_TYPES))
+        raise ValueError(f"unknown asset_type '{self.asset_type}' (known: {known})")
