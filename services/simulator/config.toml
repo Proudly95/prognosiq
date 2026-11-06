@@ -1,0 +1,39 @@
+[simulator]
+endpoint = "opc.tcp://0.0.0.0:4840/prognosiq/simulator/"
+interval_s = 1.0
+
+[[machine]]
+name = "Pump-01"
+org_id = "org-1"
+asset_id = "asset-101"
+asset_type = "pump"
+
+[[machine]]
+name = "Motor-01"
+org_id = "org-1"
+asset_id = "asset-102"
+asset_type = "motor"
+
+[[machine]]
+name = "Turbofan-01"
+org_id = "org-1"
+asset_id = "asset-103"
+asset_type = "turbofan"
+
+[[machine]]
+name = "Compressor-01"
+org_id = "org-2"
+asset_id = "asset-201"
+asset_type = "compressor"
+
+[[machine]]
+name = "Conveyor-01"
+org_id = "org-2"
+asset_id = "asset-202"
+asset_type = "conveyor"
+
+[[machine]]
+name = "Pump-02"
+org_id = "org-2"
+asset_id = "asset-203"
+asset_type = "pump"
