@@ -2,10 +2,10 @@
 
 > Maintained by @Proudly95 + AI pair (Z.ai chat) + Claude Code (VS Code).
 > Rule: every session starts by reading this file. Update it BEFORE ending a session.
-> Last updated: 2026-11-06 — #11 SimulatorL pieces 1+2 DONE (commits 6467f2b
-> + e88dd4b + ae873d2 on feat/simulator-hello-fleet, NOT yet PR'd): config-
-> driven fleet + OPC-UA integration tests, 19 tests green;
-> next: #11 piece 3 — Dockerfile + compose entry.
+> Last updated: 2026-11-06 — #11 SimulatorL OPC-UA DONE — all 4 pieces
+> (config-driven fleet, per-type degradation, OPC-UA integration tests,
+> Dockerfile + compose on host port 4841, README) on feat/simulator-
+> hello-fleet → PR "Closes #11". Suite 19 sim + 50 api green; next: #12.
 
 ## Product vision (the real endgame)
 
@@ -52,6 +52,11 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 
 ## Git state
 
+- 2026-11-06 (later): #11 COMPLETED — 938c01f Dockerfile + compose (host
+  port 4841: Docker Desktop forwards on the Windows side, where opcualds.exe
+  OPC-UA Local Discovery Server owns 4840; probe.py targets 4841) ·
+  99c799c README (address space, profiles, run, gotchas). Pre-push gates:
+  ruff clean · sim 19/19 · api 50/50. PR "Closes #11".
 - 2026-11-06: #11 pieces 1+2 on branch `feat/simulator-hello-fleet` (off
   latest main): 6467f2b hello-fleet server + degradation engine · e88dd4b
   config-driven fleet (config.toml, per-type wear profiles, UA identity
@@ -75,19 +80,20 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
   created 2026-11-03) is auto-loaded every session and directs the AI to
   this file first.
 
-## Next task: #11 piece 3 — Dockerfile + compose entry
+## Next task: #12 — OPC-UA collectors + MQTT bridge (`services/collector/`)
 
-- Pieces 1+2 DONE (2026-11-06): config-driven fleet + OPC-UA integration
-  tests. test_server.py boots run(cfg) in-process on 127.0.0.1:48410 with
-  interval 0.01 and talks to it with a real asyncua Client. Fixture
-  pattern: create_task(run(cfg)) → poll-connect → yield → cancel + await.
-- Piece 3: Dockerfile (uv-based, python 3.12-slim, copy pyproject.toml +
-  uv.lock, run `python -m simulator.main`) + docker-compose `simulator`
-  service (expose 4840, mount config.toml). Brief in Roadmap #11 below.
-- Piece 4: README (address-space design + topic-mapping contract +
-  "no security — dev only" note) → then PR "Closes #11".
-- ADR-0002 obligation kept by design: collector reads the UA properties to
-  build `prognosiq/orgs/{org}/assets/{asset}/telemetry`.
+- Depends on #11 ✅ DONE (simulator serves the fleet, containerized;
+  `services/simulator/README.md` documents the address space and the
+  identity-property contract).
+- ADR-0002 obligations: build the API telemetry ingestion endpoint (single
+  write path) · collector buffers + retries on API downtime · JSON payload
+  `"v": 1` · topic `prognosiq/orgs/{org}/assets/{asset}/telemetry` ·
+  telemetry table created AS a hypertable · compose + CI postgres images
+  → `timescale/timescaledb` (pg17).
+- asyncua client using SUBSCRIPTIONS (not polling) · Mosquitto in compose ·
+  reads OrgId/AssetId/AssetType/Health properties per machine (the #11
+  contract) · reconnect resilience · tests against local OPC-UA + local
+  MQTT · demo: mosquitto_sub shows live values for every simulated asset.
 
 ## Last task: ADR-0002 dual-protocol pipeline — ACCEPTED 2026-11-03 (PR #41)
 
@@ -256,9 +262,9 @@ OPC-UA (Kafka in Phase 5) · Docker, GitHub Actions, Prometheus/Grafana, Evident
 - Done: #1 skeleton, #2 docker compose, #3 models+Alembic, #4 registration,
   #5 JWT login, #6 orgs+RBAC, #7 assets CRUD + pagination (PR #33),
   #8 work orders CRUD (PR #36), #9 CI test job — green + badge (PRs #38/#39),
-  #10 ADR-0001, #13 ADR-0002 (PR #41)
-- In progress: #11 SimulatorL OPC-UA (pieces 1+2 done 2026-11-06; pieces 3–4 left)
-- Backlog: #12 collectors + MQTT bridge
+  #10 ADR-0001, #13 ADR-0002 (PR #41), #11 SimulatorL OPC-UA (this PR —
+  Closes #11)
+- Backlog: #12 collectors + MQTT bridge ← NEXT UP
 
 ## Roadmap (ticket briefs — added 2026-11-03, fact-checked)
 
@@ -294,7 +300,7 @@ C-MAPSS files — can start in parallel with anything.)
   telemetry) · payload format (JSON now; protobuf/Avro later?) · what
   triggers the Phase-5 Kafka switch. Link from README when merged.
 
-### #11 — SimulatorL OPC-UA server (`services/simulator/`) — pieces 1+2 DONE 2026-11-06
+### #11 — SimulatorL OPC-UA server (`services/simulator/`) ✅ DONE 2026-11-06 (this PR, Closes #11)
 - asyncua server; address space `/Fleet` → machine objects → sensor
   variables; machine types matching the AssetType enum
 - Degradation engine: normal telemetry + C-MAPSS-style sensor drift toward
@@ -356,3 +362,10 @@ C-MAPSS files — can start in parallel with anything.)
   generator that sorted()/list() reject (PEP 530) — use a list comp ·
   constructing SimulatorConfig in code skips load_config validation —
   closed via MachineConfig.__post_init__ asset_type check
+- Docker/OPC-UA gotchas (2026-11-06): opcualds.exe (OPC-UA Local Discovery
+  Server, Windows service) permanently owns host port 4840 → Docker
+  Desktop can't forward 4840; simulator publishes 4841:4840 · container
+  stdout is block-buffered — the print() banner is invisible until
+  PYTHONUNBUFFERED=1 (set in the Dockerfile); missing banner ≠ dead
+  server · WSL-side ports (host-run simulator on 4840) are a separate
+  namespace, unaffected by the Windows LDS
