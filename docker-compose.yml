@@ -17,5 +17,13 @@ services:
       timeout: 5s
       retries: 5
 
+  simulator:
+    build: ./services/simulator
+    restart: unless-stopped
+    ports:
+      - "4841:4840"
+    volumes:
+      - ./services/simulator/config.toml:/app/config.toml:ro
+
 volumes:
   pgdata:
